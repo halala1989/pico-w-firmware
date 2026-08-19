@@ -21,6 +21,8 @@
 
 // BTstack configuration: buffers, sizes
 #define HCI_ACL_PAYLOAD_SIZE 255
+#define HCI_OUTGOING_PRE_BUFFER_SIZE 4
+#define HCI_ACL_CHUNK_SIZE_ALIGNMENT 4
 #define MAX_NR_BNEP_CHANNELS 0
 #define MAX_NR_BNEP_SERVICES 0
 
