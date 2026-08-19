@@ -24,7 +24,6 @@ target_include_directories(pico_w_keyboard_firmware PRIVATE
 # Console over UART only; stdio USB must stay OFF so TinyUSB can act as HID.
 pico_enable_stdio_uart(pico_w_keyboard_firmware ON)
 pico_enable_stdio_usb(pico_w_keyboard_firmware OFF)
-pico_enable_usb_reset_interface(pico_w_keyboard_firmware OFF)
 
 target_link_libraries(pico_w_keyboard_firmware
     pico_stdlib
