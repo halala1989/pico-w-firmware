@@ -18,15 +18,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install ARM cross toolchain
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-arm-none-eabi \
-            libnewlib-arm-none-eabi \
-            libstdc++-arm-none-eabi-newlib \
-            build-essential \
-            cmake \
-            git
+        uses: carlosperate/arm-none-eabi-gcc-action@v1
+        with:
+          release: '13.3.Rel1'
 
       - name: Checkout Pico SDK (2.1.0, recursive for btstack/tinyusb/lwip/mbedtls)
         run: |
