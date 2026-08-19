@@ -31,6 +31,9 @@
 #define MAX_NR_SM_LOOKUP_ENTRIES 3
 #define MAX_NR_SM_MASTER_KEY_ENTRIES 3
 #define MAX_NR_LE_DEVICE_DB_ENTRIES 1
+// LE device DB persisted via TLV on flash (single paired host)
+#define NVM_NUM_DEVICE_DB_ENTRIES 1
+#define NVM_NUM_LINK_KEYS 1
 #define MAX_NR_GATT_CLIENTS 0
 #define MAX_NR_L2CAP_CHANNELS  1
 #define MAX_NR_L2CAP_SERVICES  1
