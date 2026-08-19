@@ -155,7 +155,7 @@ int main(void) {
     // BTstack: run loop + HCI are set up by pico_btstack_cyw43.
     l2cap_init();
     sm_init();
-    sm_set_io_capabilities(SM_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
+    sm_set_io_capabilities(SSP_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
     sm_set_authentication_requirements(0); // no bonding
 
     att_server_init(profile_data, att_read_callback, att_write_callback);

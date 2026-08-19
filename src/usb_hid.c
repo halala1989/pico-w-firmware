@@ -32,14 +32,6 @@ static tusb_desc_device_t const desc_device = {
 
 #define EPNUM_HID 0x81
 
-static uint8_t const desc_configuration[] = {
-    // Configuration descriptor
-    TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN, 0x00, 100),
-    // Interface 0, HID keyboard (boot protocol supported)
-    TUD_HID_DESCRIPTOR(0, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), EPNUM_HID,
-                       CFG_TUD_HID_EP_BUFSIZE, 10),
-};
-
 static uint8_t const desc_hid_report[] = {
     0x05, 0x01, // Usage Page (Generic Desktop)
     0x09, 0x06, // Usage (Keyboard)
@@ -64,6 +56,14 @@ static uint8_t const desc_hid_report[] = {
     0x29, 0x65, //   Usage Maximum (101)
     0x81, 0x00, //   Input (Data, Array) -> keycodes
     0xC0,       // End Collection
+};
+
+static uint8_t const desc_configuration[] = {
+    // Configuration descriptor
+    TUD_CONFIG_DESCRIPTOR(1, 1, 0, TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN, 0x00, 100),
+    // Interface 0, HID keyboard (boot protocol supported)
+    TUD_HID_DESCRIPTOR(0, 0, HID_ITF_PROTOCOL_KEYBOARD, sizeof(desc_hid_report), EPNUM_HID,
+                       CFG_TUD_HID_EP_BUFSIZE, 10),
 };
 
 // ---------------------------------------------------------------------------
