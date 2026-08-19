@@ -20,9 +20,9 @@
 #include "pico/cyw43_arch.h"
 #include "hardware/timer.h"
 #include "btstack.h"
-#include "pico/btstack.h"
+#include "pico/btstack_cyw43.h"
 
-// Generated from pico_w_keyboard.gatt by pico_btstack_ble.
+// Generated from pico_w_keyboard.gatt by pico_btstack_make_gatt_header.
 #include "pico_w_keyboard.h"
 
 #include "usb_hid.h"
@@ -40,14 +40,10 @@ static packet_parser_t parser;
 // ---------------------------------------------------------------------------
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
-// TX characteristic value handle (resolved at startup from the GATT table).
-static uint16_t att_tx_handle = 0;
-
-// UUID of the TX characteristic, little-endian byte order as used by BTstack.
-static const uint8_t tx_uuid128[16] = {
-    0x14, 0x12, 0x8A, 0x76, 0x04, 0xD1, 0x6F, 0x4E,
-    0x7E, 0x53, 0xF2, 0xE8, 0x01, 0x00, 0xB1, 0x19,
-};
+// TX characteristic value handle; generated from pico_w_keyboard.gatt.
+#define ATT_TX_VALUE_HANDLE \
+    ATT_CHARACTERISTIC_19B10001_E8F2_537E_4F6C_D104768A1214_TX_VALUE_HANDLE
+static uint16_t att_tx_handle = ATT_TX_VALUE_HANDLE;
 
 // Advertising: name "PICO-W-KEYBOARD" (matches the Android DEVICE_NAME_FILTER).
 // AD structure: [len][0x01 flags], [len][0x09 complete local name]
@@ -65,22 +61,23 @@ static void hci_packet_handler(uint8_t packet_type, uint16_t channel,
     }
     // Connection open/close handling is optional for the injector.
     switch (hci_event_packet_get_type(packet)) {
-    case HCI_EVENT_LE_META:
+    case BTSTACK_EVENT_STATE:
+        if (btstack_event_state_get_state(packet) == HCI_STATE_WORKING) {
+            // Stack is up: configure and enable advertisements.
+            uint16_t adv_int_min = 100;
+            uint16_t adv_int_max = 100;
+            uint8_t adv_type = 0;
+            bd_addr_t null_addr = {0, 0, 0, 0, 0, 0};
+            gap_advertisements_set_params(adv_int_min, adv_int_max, adv_type,
+                                          0, null_addr, 0x07, 0x00);
+            gap_advertisements_set_data(sizeof(adv_data), (uint8_t *)adv_data);
+            gap_advertisements_enable(1);
+            printf("Advertising as PICO-W-KEYBOARD\n");
+        }
+        break;
     default:
         break;
     }
-}
-
-/** Resolve the TX characteristic value handle from the generated GATT table. */
-static uint16_t find_tx_handle(void) {
-    const gatt_service_t *g = gatt_server_pico_w_keyboard.gatt_data;
-    for (uint16_t i = 0; i < gatt_server_pico_w_keyboard.service_count; i++) {
-        if (g[i].type == GATT_SERVICE_TYPE_CHARACTERISTIC &&
-            memcmp(g[i].uuid128, tx_uuid128, 16) == 0) {
-            return g[i].characteristic.value_handle;
-        }
-    }
-    return 0;
 }
 
 /**
@@ -149,39 +146,24 @@ static uint16_t att_read_callback(hci_con_handle_t con_handle,
 int main(void) {
     stdio_init_all();
 
+    // Initialises CYW43 driver architecture; enables BT (CYW43_ENABLE_BLUETOOTH).
     if (cyw43_arch_init()) {
         printf("cyw43_arch_init failed\n");
         return -1;
     }
 
-    // BLE stack
-    btstack_run_loop_init(btstack_run_loop_get_embedded());
-    hci_init(hci_transport_cyw43_instance(), NULL);
-
+    // BTstack: run loop + HCI are set up by pico_btstack_cyw43.
     l2cap_init();
     sm_init();
     sm_set_io_capabilities(SM_IO_CAPABILITY_NO_INPUT_NO_OUTPUT);
     sm_set_authentication_requirements(0); // no bonding
 
-    gatt_server_init(&gatt_server_pico_w_keyboard, att_read_callback,
-                     att_write_callback);
+    att_server_init(profile_data, att_read_callback, att_write_callback);
 
     hci_event_callback_registration.callback = &hci_packet_handler;
     hci_add_event_handler(&hci_event_callback_registration);
 
-    att_tx_handle = find_tx_handle();
-    if (att_tx_handle == 0) {
-        printf("ERROR: TX characteristic handle not found\n");
-    } else {
-        printf("TX characteristic handle = 0x%04X\n", att_tx_handle);
-    }
-
-    // Advertisement
-    uint8_t empty_addr[6] = {0, 0, 0, 0, 0, 0};
-    ble_gap_advertisements_set_params(100, 100, 0, 0, empty_addr, 0x07, 0x00);
-    ble_gap_advertisements_set_data(sizeof(adv_data), (uint8_t *)adv_data);
-    ble_gap_scan_response_set_data(0, NULL);
-    ble_gap_advertisements_enable();
+    printf("TX characteristic handle = 0x%04X\n", att_tx_handle);
 
     // USB HID device (keyboard)
     usb_hid_init();
@@ -190,11 +172,11 @@ int main(void) {
     packet_parser_reset(&parser, text_buffer, TEXT_BUFFER_CAP);
 
     hci_power_control(HCI_POWER_ON);
-    printf("Pico W Keyboard Injector ready. Advertising as PICO-W-KEYBOARD\n");
+    printf("Pico W Keyboard Injector ready\n");
 
-    // Main loop: service BTstack (BLE) and TinyUSB (USB HID) alternately.
+    // Main loop: service CYW43 async context (BTstack BLE) and TinyUSB (USB HID).
     while (true) {
-        btstack_run_loop_poll();
+        async_context_poll(cyw43_arch_async_context());
         usb_hid_poll();
     }
 }

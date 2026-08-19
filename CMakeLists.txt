@@ -9,12 +9,6 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 
 pico_sdk_init()
 
-# BLE GATT server compiled from pico_w_keyboard.gatt (BTstack).
-pico_btstack_ble(pico_w_keyboard_firmware
-    TARGET_LIB pico_btstack_ble_pico_w_keyboard
-    GATT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/pico_w_keyboard.gatt
-)
-
 add_executable(pico_w_keyboard_firmware
     src/main.c
     src/packet_parser.c
@@ -33,11 +27,15 @@ pico_enable_stdio_usb(pico_w_keyboard_firmware OFF)
 pico_enable_usb_reset_interface(pico_w_keyboard_firmware OFF)
 
 target_link_libraries(pico_w_keyboard_firmware
-    pico_cyw43_arch_lwip_threadsafe_background
+    pico_stdlib
+    pico_cyw43_arch_none
     pico_btstack_cyw43
-    pico_btstack_ble_pico_w_keyboard
+    pico_btstack_ble
     tinyusb_device
     hardware_timer
 )
+
+# Generate pico_w_keyboard.h (profile_data + ATT_*_HANDLE macros) from the .gatt file.
+pico_btstack_make_gatt_header(pico_w_keyboard_firmware PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/pico_w_keyboard.gatt")
 
 pico_add_extra_outputs(pico_w_keyboard_firmware)
